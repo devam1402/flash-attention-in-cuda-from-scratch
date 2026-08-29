@@ -53,8 +53,39 @@ __global__ void row_max(const float* matrix,
     }
 }
 
-# Step 5 - row_sum (not yet solved)
-# TODO: implement
+# Step 5 - row_sum
+__global__ void row_sum(const float* matrix, float* out, int rows, int cols) {
+    int r = blockIdx.x;
+    int tid = threadIdx.x;
+
+    __shared__ float shared[256];
+
+    float sum = 0.0f;
+
+    // Each thread sums part of the row
+    for (int c = tid; c < cols; c += blockDim.x) {
+        sum += matrix[r * cols + c];
+    }
+
+    // Store partial sum
+    shared[tid] = sum;
+
+    __syncthreads();
+
+    // Reduce all partial sums
+    for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+        if (tid < stride) {
+            shared[tid] += shared[tid + stride];
+        }
+
+        __syncthreads();
+    }
+
+    // One thread writes the final answer
+    if (tid == 0) {
+        out[r] = shared[0];
+    }
+}
 
 # Step 6 - dot_product (not yet solved)
 # TODO: implement
